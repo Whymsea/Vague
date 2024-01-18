@@ -22,7 +22,9 @@
 
 1. **Lancement d'Unity :** Ouvrez le projet que vous venez d'importer en cliquant sur son nom.
 
-2. **Vérification du Mode de Build :** Assurez-vous que le mode de build est correctement configuré pour Android. Pour cela, suivez ces étapes :
+2. **Préparation du projet** Si vous n'avez pas de scènes chargée avec une sphere alors aller dans le dossier scene et transvaser le fichier dans la scene
+
+3. **Vérification du Mode de Build :** Assurez-vous que le mode de build est correctement configuré pour Android. Pour cela, suivez ces étapes :
     - Allez dans File -> Build Settings.
     - Sélectionnez la plateforme "Android" dans la liste des plateformes disponibles.
     - Si "Android" n'est pas dans la liste, cliquez sur "Switch Platform" pour le sélectionner.
