@@ -11,7 +11,7 @@ public class SettingManager : MonoBehaviour
     public Slider videoSoundVolumeSlider;
     public Toggle showQuizToggle;
 
-    // Ajoutez cette ligne pour la gestion de l'affichage des quiz
+    // Variable pour indiquer si les quiz doivent être affichés
     public static bool showQuizzes = true;
 
     private bool isSettingsVisible = false;
@@ -22,11 +22,12 @@ public class SettingManager : MonoBehaviour
         settingsButton.onClick.AddListener(ToggleSettingsPanel);
         musicVolumeSlider.onValueChanged.AddListener(AdjustMusicVolume);
         videoSoundVolumeSlider.onValueChanged.AddListener(AdjustVideoSoundVolume);
-        showQuizToggle.onValueChanged.AddListener(ToggleShowQuizzes);
+        showQuizToggle.onValueChanged.AddListener(ShowHideQuizzes);
 
-        // Initialisation des valeurs par défaut
-        musicVolumeSlider.value = PlayerPrefs.GetFloat("MusicVolume", 1f) * 100f;
-        videoSoundVolumeSlider.value = PlayerPrefs.GetFloat("VideoSoundVolume", 1f) * 100f;
+        // Initialisation des valeurs par défaut (vous pouvez ajuster selon vos besoins)
+        musicVolumeSlider.value = AudioListener.volume * 100f;
+        videoSoundVolumeSlider.value = 100f;
+        showQuizToggle.isOn = true;
     }
 
     void ToggleSettingsPanel()
@@ -37,22 +38,30 @@ public class SettingManager : MonoBehaviour
 
     void AdjustMusicVolume(float volume)
     {
+        // Convertir le pourcentage du slider en une valeur entre 0 et 1 pour AudioListener.volume
         float normalizedVolume = volume / 100f;
         AudioListener.volume = normalizedVolume;
+
+        // Vous pouvez également stocker la valeur dans un gestionnaire de préférences ou l'utiliser ailleurs selon vos besoins
         PlayerPrefs.SetFloat("MusicVolume", normalizedVolume);
     }
 
     void AdjustVideoSoundVolume(float volume)
     {
-        // Mettez ici la logique pour ajuster le volume du son de la vidéo
-        // Par exemple, si vous utilisez VideoPlayer avec un AudioSource :
-        // videoPlayer.GetComponent<AudioSource>().volume = volume / 100f;
-        PlayerPrefs.SetFloat("VideoSoundVolume", volume / 100f);
+        // Convertir le pourcentage du slider en une valeur entre 0 et 1
+        float normalizedVolume = volume / 100f;
+
+        // Par exemple, si vous utilisez VideoPlayer :
+        // videoPlayer.GetComponent<AudioSource>().volume = normalizedVolume;
+
+        // Vous pouvez également stocker la valeur dans un gestionnaire de préférences ou l'utiliser ailleurs selon vos besoins
+        PlayerPrefs.SetFloat("VideoSoundVolume", normalizedVolume);
     }
 
-    // Ajoutez cette méthode pour gérer le changement de valeur du Toggle
-    void ToggleShowQuizzes(bool value)
+    void ShowHideQuizzes(bool show)
     {
-        showQuizzes = value;
+        Debug.Log("Afficher les quiz : " + show);
+        // Mettez à jour la variable showQuizzes en fonction de la valeur du toggle
+        showQuizzes = show;
     }
 }

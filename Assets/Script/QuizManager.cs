@@ -1,129 +1,191 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit;
+
 public class QuizManager : MonoBehaviour
 {
-   public Text questionText;
-    public Text resultText;
+    public GameObject QuizRacine;
+    public Text questionText;
+    public XRGrabInteractable button1;
+    public XRGrabInteractable button2;
+    public XRGrabInteractable button3;
+    public XRGrabInteractable button4;
 
-    private int devScore;
-    private int creaScore;
-    private int comScore;
-    public Image questionImage;
-    private int currentQuestionIndex = 0;
-    public Sprite[] questionSprites;
-    public Button button1;
-    public Button button2;
-    public Button button3;
+    public MeshRenderer button1Renderer;
+    public MeshRenderer button2Renderer;
+    public MeshRenderer button3Renderer;
+    public MeshRenderer button4Renderer;
 
-    private Question[] questions = new Question[]
+    public Text button1Text;
+    public Text button2Text;
+    public Text button3Text;
+    public Text button4Text;
+
+    public Question[] questions = new Question[]
     {
-        new Question("Question 1 : Quelle est votre couleur préférée ?", "Bleu", "Rouge", "Vert", 1, 1, 1, new int[] { 0 }),
-        new Question("Question 2 : Quel langage de programmation préférez-vous ?", "C#", "Python", "JavaScript", 1, 1, 1, new int[] { 1 }),
-        // Ajoutez d'autres questions ici...
+        new Question("Question 1 : Quelle est la couleur d'un bar commun ?", "Bleu", "Rouge", "Vert", "Jaune", 2, 0),
+        new Question("Question 2 : Quelle est la longueur d'un poulet ?", "1m50", "3m10", "1m75", "1m25", 1, 1),
+        // Associez chaque question à une vidéo spécifique...
     };
+
+    public int currentQuestionIndex = 0;
+
+    public VideoManager videoManager;
 
     private void Start()
     {
-        questionSprites = new Sprite[] { /* Ajoutez vos sprites ici */ };
+        // Assurez-vous que videoManager est correctement attribué dans l'inspecteur Unity
+        if (videoManager == null)
+        {
+            Debug.LogError("VideoManager reference not assigned. Please assign the VideoManager in the Unity Inspector.");
+            return;
+        }
+
+        // Assurez-vous que les MeshRenderer des boutons sont correctement attribués dans l'inspecteur Unity
+        if (button1Renderer == null || button2Renderer == null || button3Renderer == null || button4Renderer == null)
+        {
+            Debug.LogError("MeshRenderer references not assigned. Please assign MeshRenderers for all buttons in the Unity Inspector.");
+            return;
+        }
+
         DisplayQuestion();
     }
 
-    public void AnswerChoice1()
+    public void StartQuiz()
     {
-        Answer(0);
+        // Assurez-vous que la variable currentVideoIndex est initialisée ou a une valeur appropriée
+        // Vous pouvez initialiser la variable ici ou à un autre endroit selon vos besoins.
+        currentQuestionIndex = 0;
+
+        // Votre logique pour démarrer le quiz ici
+        DisplayQuestionForVideo(videoManager.GetCurrentVideoIndex());
     }
 
-    public void AnswerChoice2()
+    public void Answer(int choiceIndex)
     {
-        Answer(1);
-    }
+        Question currentQuestion = questions[currentQuestionIndex];
+        currentQuestion.userAnswer = choiceIndex;
 
-    public void AnswerChoice3()
-    {
-        Answer(2);
-    }
+        // Vérifier si la réponse de l'utilisateur est correcte
+        currentQuestion.isCorrect = (currentQuestion.userAnswer == currentQuestion.correctChoice);
 
-    private void Answer(int choiceIndex)
-    {
-        devScore += questions[currentQuestionIndex].devPoints[choiceIndex];
-        creaScore += questions[currentQuestionIndex].creaPoints[choiceIndex];
-        comScore += questions[currentQuestionIndex].comPoints[choiceIndex];
+        // Mettre à jour la couleur des boutons en fonction de la réponse
+        UpdateButtonColors();
 
         currentQuestionIndex++;
 
         if (currentQuestionIndex < questions.Length)
         {
-            DisplayQuestion();
+            // Afficher la prochaine question après un court délai
+            StartCoroutine(DisplayNextQuestion());
         }
         else
         {
-            DisplayResult();
-        }
-    }
-
-    private void DisplayQuestion()
-    {
-        if (currentQuestionIndex < questions.Length)
-        {
-            button1.GetComponentInChildren<Text>().text = questions[currentQuestionIndex].choice1;
-            button2.GetComponentInChildren<Text>().text = questions[currentQuestionIndex].choice2;
-            button3.GetComponentInChildren<Text>().text = questions[currentQuestionIndex].choice3;
-
-            button1.GetComponentInChildren<Text>().gameObject.SetActive(true);
-            button2.GetComponentInChildren<Text>().gameObject.SetActive(true);
-            button3.GetComponentInChildren<Text>().gameObject.SetActive(true);
-
-            questionText.text = questions[currentQuestionIndex].question;
-
-            Sprite[] questionImages = questions[currentQuestionIndex].GetQuestionImages(questionSprites);
-
-            if (questionImages.Length > 0)
+            // Vérifier si toutes les questions pour la vidéo actuelle ont été répondues
+            if (AreAllQuestionsAnsweredForCurrentVideo())
             {
-                questionImage.sprite = questionImages[0];
-                questionImage.gameObject.SetActive(true);
+                // Passer à la vidéo suivante après un court délai
+                StartCoroutine(MoveToNextVideo());
             }
             else
             {
-                Debug.LogError("Aucune image trouvée pour la question " + currentQuestionIndex);
-                questionImage.gameObject.SetActive(false);
+                // Ajoutez ici la logique à exécuter lorsque toutes les questions ont été répondues
+                Debug.Log("Quiz terminé !");
             }
-        }
-        else
-        {
-            button1.GetComponentInChildren<Text>().gameObject.SetActive(false);
-            button2.GetComponentInChildren<Text>().gameObject.SetActive(false);
-            button3.GetComponentInChildren<Text>().gameObject.SetActive(false);
-
-            questionImage.gameObject.SetActive(false);
-
-            questionText.text = "";
         }
     }
 
-    private void DisplayResult()
+    private void UpdateButtonColors()
     {
-        string resultMessage = "Résultats :\n\n";
+        Question currentQuestion = questions[currentQuestionIndex];
 
-        if (devScore > creaScore && devScore > comScore)
+        // Changer la couleur des boutons en fonction de la réponse de l'utilisateur
+        button1Renderer.material.color = (currentQuestion.userAnswer == 0) ? GetButtonColor(currentQuestion) : Color.white;
+        button2Renderer.material.color = (currentQuestion.userAnswer == 1) ? GetButtonColor(currentQuestion) : Color.white;
+        button3Renderer.material.color = (currentQuestion.userAnswer == 2) ? GetButtonColor(currentQuestion) : Color.white;
+        button4Renderer.material.color = (currentQuestion.userAnswer == 3) ? GetButtonColor(currentQuestion) : Color.white;
+    }
+
+    private Color GetButtonColor(Question question)
+    {
+        // Retourner la couleur appropriée en fonction de la correction de la réponse
+        return question.isCorrect ? Color.green : Color.red;
+    }
+
+    private IEnumerator MoveToNextVideo()
+    {
+        // Attendre quelques secondes avant de passer à la vidéo suivante
+        yield return new WaitForSeconds(3f);
+
+        // Passer à la vidéo suivante en appelant la fonction de VideoManager
+        videoManager.NextVideo();
+    }
+
+    private bool AreAllQuestionsAnsweredForCurrentVideo()
+    {
+        // Vérifier si toutes les questions pour la vidéo actuelle ont été répondues
+        int currentVideoIndex = questions[currentQuestionIndex - 1].videoIndex;
+        return questions.Where(q => q.videoIndex == currentVideoIndex).All(q => q.userAnswer != -1);
+    }
+
+    private IEnumerator DisplayNextQuestion()
+    {
+        // Attendre quelques secondes avant d'afficher la prochaine question
+        yield return new WaitForSeconds(2f);
+
+        // Afficher la prochaine question
+        DisplayQuestion();
+    }
+
+    private void DisplayQuestion(Question questionToDisplay = null)
+    {
+        // Réinitialiser la couleur des boutons
+        ResetButtonColors();
+
+        // Utilisez le paramètre de la méthode plutôt que la variable locale
+        button1Text.text = questionToDisplay.choice1;
+        button2Text.text = questionToDisplay.choice2;
+        button3Text.text = questionToDisplay.choice3;
+        button4Text.text = questionToDisplay.choice4;
+
+        questionText.text = questionToDisplay.question;
+    }
+
+    public void DisplayQuestionForVideo(int videoIndex)
+    {
+        // Recherchez la question associée à la vidéo actuelle
+        foreach (var q in questions)
         {
-            resultMessage += "Vous êtes orienté développement!";
+            if (q.videoIndex == videoIndex)
+            {
+                // Affichez la question trouvée
+                DisplayQuestion(q);
+                break;
+            }
         }
-        else if (creaScore > devScore && creaScore > comScore)
+    }
+
+    void ResetButtonColors()
+    {
+        ChangeButtonColor(button1Renderer, Color.white);
+        ChangeButtonColor(button2Renderer, Color.white);
+        ChangeButtonColor(button3Renderer, Color.white);
+        ChangeButtonColor(button4Renderer, Color.white);
+    }
+
+    void ChangeButtonColor(MeshRenderer buttonRenderer, Color color)
+    {
+        if (buttonRenderer != null)
         {
-            resultMessage += "Vous êtes orienté créativité!";
-        }
-        else if (comScore > devScore && comScore > creaScore)
-        {
-            resultMessage += "Vous êtes orienté communication!";
+            buttonRenderer.material.color = color;
         }
         else
         {
-            resultMessage += "Vous avez des compétences équilibrées!\n 10201 !";
+            Debug.LogError("Le bouton n'a pas de composant MeshRenderer attaché.");
         }
-
-        resultText.text = resultMessage;
     }
 
     [System.Serializable]
@@ -133,44 +195,21 @@ public class QuizManager : MonoBehaviour
         public string choice1;
         public string choice2;
         public string choice3;
+        public string choice4;
+        public int correctChoice;
+        public int videoIndex;
+        public int userAnswer = -1;
+        public bool isCorrect;  // Nouvelle propriété pour indiquer si la réponse est correcte
 
-        public int[] devPoints;
-        public int[] creaPoints;
-        public int[] comPoints;
-
-        private int[] questionImageIndices;
-
-        public Question(string question, string choice1, string choice2, string choice3, int devPoints1, int creaPoints1, int comPoints1, int[] questionImageIndices)
+        public Question(string question, string choice1, string choice2, string choice3, string choice4, int correctChoice, int videoIndex)
         {
             this.question = question;
             this.choice1 = choice1;
             this.choice2 = choice2;
             this.choice3 = choice3;
-
-            this.devPoints = new int[] { devPoints1, devPoints1, devPoints1 };
-            this.creaPoints = new int[] { creaPoints1, creaPoints1, creaPoints1 };
-            this.comPoints = new int[] { comPoints1, comPoints1, comPoints1 };
-
-            this.questionImageIndices = questionImageIndices;
-        }
-
-        public Sprite[] GetQuestionImages(Sprite[] questionSprites)
-        {
-            List<Sprite> images = new List<Sprite>();
-
-            foreach (int index in questionImageIndices)
-            {
-                if (index >= 0 && index < questionSprites.Length)
-                {
-                    images.Add(questionSprites[index]);
-                }
-                else
-                {
-                    Debug.LogError("Invalid index for question image.");
-                }
-            }
-
-            return images.ToArray();
+            this.choice4 = choice4;
+            this.correctChoice = correctChoice;
+            this.videoIndex = videoIndex;
         }
     }
 }
