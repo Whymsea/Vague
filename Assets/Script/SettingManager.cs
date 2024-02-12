@@ -2,32 +2,50 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class SettingManager : MonoBehaviour
 {
     public GameObject settingsPanel;
-    public Button settingsButton;
-    public Slider musicVolumeSlider;
-    public Slider videoSoundVolumeSlider;
+    public GameObject quizPanel; 
+    public Button parameterIcon;
     public Toggle showQuizToggle;
-
-    // Variable pour indiquer si les quiz doivent être affichés
+    public TextMeshProUGUI toggleTextMeshPro;
+    public QuizManager quizManager;
+    public VideoManager videoManager; // Ajoutez une référence au VideoManager
     public static bool showQuizzes = true;
-
     private bool isSettingsVisible = false;
 
-    void Start()
+    [SerializeField] Slider volumeSlider;
+
+    public void ChangeVolume()
+    {
+        float normalizedVolume = volumeSlider.value / 100f;
+        AudioListener.volume = normalizedVolume;
+        Save();
+        Debug.Log("Volume changed to: " + normalizedVolume);
+    }
+
+    private void Start()
     {
         settingsPanel.SetActive(false);
-        settingsButton.onClick.AddListener(ToggleSettingsPanel);
-        musicVolumeSlider.onValueChanged.AddListener(AdjustMusicVolume);
-        videoSoundVolumeSlider.onValueChanged.AddListener(AdjustVideoSoundVolume);
+        quizPanel.SetActive(showQuizzes);
+        parameterIcon.onClick.AddListener(OnParameterIconClicked);
         showQuizToggle.onValueChanged.AddListener(ShowHideQuizzes);
-
-        // Initialisation des valeurs par défaut (vous pouvez ajuster selon vos besoins)
-        musicVolumeSlider.value = AudioListener.volume * 100f;
-        videoSoundVolumeSlider.value = 100f;
         showQuizToggle.isOn = true;
+
+        Load();
+
+        // Ajoutez une vérification pour s'assurer que videoManager est correctement attribué
+        if (videoManager == null)
+        {
+            Debug.LogError("VideoManager reference not assigned. Please assign the VideoManager in the Unity Inspector.");
+        }
+    }
+
+    void OnParameterIconClicked()
+    {
+        ToggleSettingsPanel();
     }
 
     void ToggleSettingsPanel()
@@ -36,32 +54,33 @@ public class SettingManager : MonoBehaviour
         settingsPanel.SetActive(isSettingsVisible);
     }
 
-    void AdjustMusicVolume(float volume)
-    {
-        // Convertir le pourcentage du slider en une valeur entre 0 et 1 pour AudioListener.volume
-        float normalizedVolume = volume / 100f;
-        AudioListener.volume = normalizedVolume;
-
-        // Vous pouvez également stocker la valeur dans un gestionnaire de préférences ou l'utiliser ailleurs selon vos besoins
-        PlayerPrefs.SetFloat("MusicVolume", normalizedVolume);
-    }
-
-    void AdjustVideoSoundVolume(float volume)
-    {
-        // Convertir le pourcentage du slider en une valeur entre 0 et 1
-        float normalizedVolume = volume / 100f;
-
-        // Par exemple, si vous utilisez VideoPlayer :
-        // videoPlayer.GetComponent<AudioSource>().volume = normalizedVolume;
-
-        // Vous pouvez également stocker la valeur dans un gestionnaire de préférences ou l'utiliser ailleurs selon vos besoins
-        PlayerPrefs.SetFloat("VideoSoundVolume", normalizedVolume);
-    }
-
     void ShowHideQuizzes(bool show)
     {
-        Debug.Log("Afficher les quiz : " + show);
-        // Mettez à jour la variable showQuizzes en fonction de la valeur du toggle
         showQuizzes = show;
+        quizPanel.SetActive(show);
+
+        if (toggleTextMeshPro != null)
+        {
+            toggleTextMeshPro.text = show ? "On" : "Off";
+        }
+        else
+        {
+            Debug.LogError("TextMeshProUGUI non assigné. Veuillez assigner le TextMeshProUGUI dans l'éditeur Unity.");
+        }
+
+        Color toggleBackgroundColor = show ? Color.white : Color.gray;
+        showQuizToggle.GetComponent<Image>().color = toggleBackgroundColor;
+        Debug.Log("Afficher les quiz : " + show);
+    }
+
+    private void Load()
+    {
+        volumeSlider.value = PlayerPrefs.GetFloat("musicVolume", 100f); // Ajoutez une valeur par défaut si aucune valeur n'est trouvée
+        ChangeVolume(); // Appliquez le volume au chargement
+    }
+
+    private void Save()
+    {
+        PlayerPrefs.SetFloat("musicVolume", volumeSlider.value);
     }
 }

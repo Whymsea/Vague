@@ -9,6 +9,8 @@ public class VideoManager : MonoBehaviour
     public VideoClip[] videoClips;
     public Button nextButton;
     public Button prevButton;
+    public Button pauseButton;
+    public Button playButton;
     public QuizManager quizManager;
     public GameObject sphere;
     public GameObject QuizRacine;
@@ -28,6 +30,8 @@ public class VideoManager : MonoBehaviour
 
         nextButton.onClick.AddListener(NextVideo);
         prevButton.onClick.AddListener(PreviousVideo);
+        pauseButton.onClick.AddListener(PauseVideo);
+        playButton.onClick.AddListener(PlayVideo);
     }
 
     void CreateVideoPlayer()
@@ -74,6 +78,20 @@ public class VideoManager : MonoBehaviour
         }
     }
 
+    public void LoadVideoByIndex(int index)
+    {
+        if (index >= 0 && index < videoClips.Length)
+        {
+            videoPlayer.Stop();
+            currentVideoIndex = index;
+            ShowVideo(currentVideoIndex);
+        }
+        else
+        {
+            Debug.LogWarning("Index is out of bounds");
+        }
+    }
+
     public void NextVideo()
     {
         videoPlayer.Stop();
@@ -86,6 +104,22 @@ public class VideoManager : MonoBehaviour
         videoPlayer.Stop();
         currentVideoIndex = (currentVideoIndex - 1 + videoClips.Length) % videoClips.Length;
         ShowVideo(currentVideoIndex);
+    }
+
+    public void PauseVideo()
+    {
+        if (videoPlayer.isPlaying)
+        {
+            videoPlayer.Pause();
+        }
+    }
+
+    public void PlayVideo()
+    {
+        if (!videoPlayer.isPlaying)
+        {
+            videoPlayer.Play();
+        }
     }
 
     public void VideoEnded(VideoPlayer vp)
